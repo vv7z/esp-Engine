@@ -739,49 +739,74 @@ end
 
 -- Helper function to calculate 2D bounding box
 local function GetBoundingBox(object, camera)
-	local cframe, size
+	local parts = {}
 	
-	-- Get CFrame and size based on object type
+	-- Collect all parts to calculate bounds from
 	if object:IsA("Model") then
-		local cf, sz = object:GetBoundingBox()
-		cframe, size = cf, sz
+		-- For characters, use HumanoidRootPart as primary reference
+		local hrp = object:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			-- For character models, get visible parts only (exclude root part from visual bounds)
+			for _, part in ipairs(object:GetDescendants()) do
+				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+					table.insert(parts, part)
+				end
+			end
+			-- If no other parts found, use the root part
+			if #parts == 0 then
+				table.insert(parts, hrp)
+			end
+		else
+			-- For non-character models, get all parts
+			for _, part in ipairs(object:GetDescendants()) do
+				if part:IsA("BasePart") then
+					table.insert(parts, part)
+				end
+			end
+		end
 	elseif object:IsA("BasePart") then
-		cframe, size = object.CFrame, object.Size
+		table.insert(parts, object)
 	else
 		return nil
 	end
 	
-	-- Calculate 8 corners of the bounding box
-	local corners = {
-		cframe * CFrame.new(size.X/2, size.Y/2, size.Z/2),
-		cframe * CFrame.new(-size.X/2, size.Y/2, size.Z/2),
-		cframe * CFrame.new(size.X/2, -size.Y/2, size.Z/2),
-		cframe * CFrame.new(-size.X/2, -size.Y/2, size.Z/2),
-		cframe * CFrame.new(size.X/2, size.Y/2, -size.Z/2),
-		cframe * CFrame.new(-size.X/2, size.Y/2, -size.Z/2),
-		cframe * CFrame.new(size.X/2, -size.Y/2, -size.Z/2),
-		cframe * CFrame.new(-size.X/2, -size.Y/2, -size.Z/2)
-	}
+	if #parts == 0 then return nil end
 	
-	-- Project corners to screen space
+	-- Project all part corners to screen space
 	local minX, minY = math.huge, math.huge
 	local maxX, maxY = -math.huge, -math.huge
 	local allInFront = true
 	
-	for _, corner in ipairs(corners) do
-		local screenPos, onScreen = camera:WorldToViewportPoint(corner.Position)
+	for _, part in ipairs(parts) do
+		local cf, size = part.CFrame, part.Size
 		
-		if screenPos.Z > 0 then
-			minX = math.min(minX, screenPos.X)
-			minY = math.min(minY, screenPos.Y)
-			maxX = math.max(maxX, screenPos.X)
-			maxY = math.max(maxY, screenPos.Y)
-		else
-			allInFront = false
+		-- Calculate 8 corners of each part
+		local corners = {
+			cf * CFrame.new(size.X/2, size.Y/2, size.Z/2),
+			cf * CFrame.new(-size.X/2, size.Y/2, size.Z/2),
+			cf * CFrame.new(size.X/2, -size.Y/2, size.Z/2),
+			cf * CFrame.new(-size.X/2, -size.Y/2, size.Z/2),
+			cf * CFrame.new(size.X/2, size.Y/2, -size.Z/2),
+			cf * CFrame.new(-size.X/2, size.Y/2, -size.Z/2),
+			cf * CFrame.new(size.X/2, -size.Y/2, -size.Z/2),
+			cf * CFrame.new(-size.X/2, -size.Y/2, -size.Z/2)
+		}
+		
+		for _, corner in ipairs(corners) do
+			local screenPos, onScreen = camera:WorldToViewportPoint(corner.Position)
+			
+			if screenPos.Z > 0 then
+				minX = math.min(minX, screenPos.X)
+				minY = math.min(minY, screenPos.Y)
+				maxX = math.max(maxX, screenPos.X)
+				maxY = math.max(maxY, screenPos.Y)
+			else
+				allInFront = false
+			end
 		end
 	end
 	
-	if not allInFront or minX == math.huge then
+	if minX == math.huge then
 		return nil
 	end
 	
@@ -900,8 +925,9 @@ RunService.RenderStepped:Connect(function()
 				end
 				
 				data.nameLabel.Text = displayName
-				data.nameLabel.Position = UDim2.new(0.5, 0, 0, -20)
-				data.nameLabel.Size = UDim2.new(1, 0, 0, data.properties.TextSize)
+				data.nameLabel.Position = UDim2.new(0.5, 0, 0, -(data.properties.TextSize + 5))
+				data.nameLabel.Size = UDim2.new(2, 0, 0, data.properties.TextSize)
+				data.nameLabel.AnchorPoint = Vector2.new(0.5, 1)
 				data.nameLabel.TextSize = data.properties.TextSize
 			end
 			
@@ -919,7 +945,8 @@ RunService.RenderStepped:Connect(function()
 					local distance = (localRoot.Position - targetPos).Magnitude
 					data.distanceLabel.Text = string.format("%.0f studs", distance)
 					data.distanceLabel.Position = UDim2.new(0.5, 0, 1, 5)
-					data.distanceLabel.Size = UDim2.new(1, 0, 0, data.properties.TextSize - 2)
+					data.distanceLabel.Size = UDim2.new(2, 0, 0, data.properties.TextSize - 2)
+					data.distanceLabel.AnchorPoint = Vector2.new(0.5, 0)
 					data.distanceLabel.TextSize = data.properties.TextSize - 2
 				end
 			end
