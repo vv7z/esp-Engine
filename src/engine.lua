@@ -195,15 +195,14 @@ end
 -- ═══════════════════════════════════════════════════════════════
 
 --[[
-	Change highlight color with optional tweening
+	Update any highlight property with optional tweening
 	
 	@param id - Highlight identifier
-	@param fillColor - New fill color (optional)
-	@param outlineColor - New outline color (optional)
+	@param properties - Table of properties to update
 	@param tweenInfo - TweenInfo for animation (optional)
 	@return tween - Created tween if tweenInfo provided
 --]]
-function VisualEngine.SetColor(id, fillColor, outlineColor, tweenInfo)
+function VisualEngine.UpdateProperties(id, properties, tweenInfo)
 	local data = _highlights[id]
 	if not data then
 		warn("[VisualEngine] Highlight not found: " .. tostring(id))
@@ -212,19 +211,20 @@ function VisualEngine.SetColor(id, fillColor, outlineColor, tweenInfo)
 	
 	local highlight = data.highlight
 	
-	-- Immediate color change
+	-- Immediate property change
 	if not tweenInfo then
-		if fillColor then highlight.FillColor = fillColor end
-		if outlineColor then highlight.OutlineColor = outlineColor end
+		for property, value in pairs(properties) do
+			if highlight[property] ~= nil then
+				highlight[property] = value
+			else
+				warn(string.format("[VisualEngine] Invalid property: %s", property))
+			end
+		end
 		return
 	end
 	
-	-- Animated color change
-	local goals = {}
-	if fillColor then goals.FillColor = fillColor end
-	if outlineColor then goals.OutlineColor = outlineColor end
-	
-	local tween = TweenService:Create(highlight, tweenInfo, goals)
+	-- Animated property change
+	local tween = TweenService:Create(highlight, tweenInfo, properties)
 	
 	-- Store tween reference
 	table.insert(data.tweens, tween)
@@ -239,6 +239,108 @@ function VisualEngine.SetColor(id, fillColor, outlineColor, tweenInfo)
 	
 	tween:Play()
 	return tween
+end
+
+--[[
+	Change highlight color with optional tweening
+	
+	@param id - Highlight identifier
+	@param fillColor - New fill color (optional)
+	@param outlineColor - New outline color (optional)
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetColor(id, fillColor, outlineColor, tweenInfo)
+	local properties = {}
+	if fillColor then properties.FillColor = fillColor end
+	if outlineColor then properties.OutlineColor = outlineColor end
+	
+	return VisualEngine.UpdateProperties(id, properties, tweenInfo)
+end
+
+--[[
+	Change fill color only
+	
+	@param id - Highlight identifier
+	@param color - New fill color
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetFillColor(id, color, tweenInfo)
+	return VisualEngine.UpdateProperties(id, {FillColor = color}, tweenInfo)
+end
+
+--[[
+	Change outline color only
+	
+	@param id - Highlight identifier
+	@param color - New outline color
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetOutlineColor(id, color, tweenInfo)
+	return VisualEngine.UpdateProperties(id, {OutlineColor = color}, tweenInfo)
+end
+
+--[[
+	Change fill transparency
+	
+	@param id - Highlight identifier
+	@param transparency - New transparency (0-1)
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetFillTransparency(id, transparency, tweenInfo)
+	return VisualEngine.UpdateProperties(id, {FillTransparency = transparency}, tweenInfo)
+end
+
+--[[
+	Change outline transparency
+	
+	@param id - Highlight identifier
+	@param transparency - New transparency (0-1)
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetOutlineTransparency(id, transparency, tweenInfo)
+	return VisualEngine.UpdateProperties(id, {OutlineTransparency = transparency}, tweenInfo)
+end
+
+--[[
+	Set both fill and outline transparency
+	
+	@param id - Highlight identifier
+	@param fillTransparency - Fill transparency (0-1)
+	@param outlineTransparency - Outline transparency (0-1)
+	@param tweenInfo - TweenInfo for animation (optional)
+	@return tween - Created tween if tweenInfo provided
+--]]
+function VisualEngine.SetTransparency(id, fillTransparency, outlineTransparency, tweenInfo)
+	local properties = {}
+	if fillTransparency then properties.FillTransparency = fillTransparency end
+	if outlineTransparency then properties.OutlineTransparency = outlineTransparency end
+	
+	return VisualEngine.UpdateProperties(id, properties, tweenInfo)
+end
+
+--[[
+	Change depth mode
+	
+	@param id - Highlight identifier
+	@param depthMode - Enum.HighlightDepthMode (AlwaysOnTop, Occluded)
+--]]
+function VisualEngine.SetDepthMode(id, depthMode)
+	return VisualEngine.UpdateProperties(id, {DepthMode = depthMode})
+end
+
+--[[
+	Enable or disable a highlight
+	
+	@param id - Highlight identifier
+	@param enabled - Boolean
+--]]
+function VisualEngine.SetEnabled(id, enabled)
+	return VisualEngine.UpdateProperties(id, {Enabled = enabled})
 end
 
 --[[
