@@ -4,7 +4,7 @@
 	═══════════════════════════════════════════════════════════════
 --]]
 
-local VisualEngine = require(script.Parent.VisualEngine)
+local VisualEngine = loadstring(game:HttpGet("https://raw.githubusercontent.com/vv7z/esp-Engine/refs/heads/main/src/engine.lua"))()
 
 -- ═══════════════════════════════════════════════════════════════
 -- INITIALIZATION
